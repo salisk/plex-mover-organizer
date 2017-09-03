@@ -25,4 +25,9 @@ os.chdir(source)
 print(os.listdir(os.getcwd()))
 #print(sum(os.path.getsize(f) for f in os.listdir(os.getcwd()) if os.path.isfile(f)))
 
-dirList = GuiWindow()
+direct = ['C', 'D', 'E'] * 10
+amount = [100] * 30
+z = zip(direct, amount)
+print(z)
+
+dirList = GuiWindow(z)

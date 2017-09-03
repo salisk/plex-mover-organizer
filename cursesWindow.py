@@ -6,15 +6,20 @@ class GuiWindow:
     window = None
     title = ""
     pointer = "-->"
-    edges = "|-+"
+    edges = "|**"
+    footer = "Space = select, Enter = start, q = cancel"
+    header = "Select files to copy"
 
+    offset = 0
     height = 15
-    width = 60
+    width = 70
+    select = 0
 
     def begin_window(self):
         self.stdscr = curses.initscr()
         curses.noecho()
         curses.cbreak()
+        curses.curs_set(0)
         self.window = curses.newwin(
             5 + self.height,
             self.width,
@@ -28,18 +33,64 @@ class GuiWindow:
         curses.echo()
         curses.endwin()
 
-    def redraw(self):
+    def render(self):
         self.window.clear()
+        #Draw borders
         self.window.border(
             self.edges[0], self.edges[0],
             self.edges[1], self.edges[1],
             self.edges[2], self.edges[2],
             self.edges[2], self.edges[2]
         )
+        #Footer + header draw
+        self.window.addstr(self.height + 4, 5, " " + self.footer + " ")
+        self.window.addstr(0, 7, " " + self.header + " ")
+
+        pos = 0
+        options = self.items_all[self.offset:self.offset + self.height + 1]
+        for option in options:
+            label = ""
+            if(option["selected"] == True):
+                label = "[x] "
+            else:
+                label = "[ ] "
+
+            self.window.addstr(pos + 2, 4, label)
+
+            if pos == self.select:
+                self.window.addstr(pos + 2, 8, option["name"], curses.A_STANDOUT)
+            else:
+                self.window.addstr(pos + 2, 8, option["name"])
+            pos += 1
+
+        self.window.refresh()
 
     def window_loop(self, stdscr):
         while 1:
-            self.redraw()
+            self.render()
+            #Check for input
+            c = stdscr.getch()
+            if c == ord('q') or  c == ord('Q'):
+                break
+            if c == curses.KEY_UP:
+                self.select -= 1
+            if c == curses.KEY_DOWN:
+                self.select += 1
+
+            #Check for bounds
+            #Upper bounds
+            if self.select < 0:
+                self.select = 0
+                if self.offset > 0:
+                    self.offset -= 1
+            #Lower bounds
+            if self.select >= self.length:
+                self.select -= 1
+            if self.select > self.height:
+                self.select = self.height
+                self.offset += 1
+                if self.offset + self.select >= self.length:
+                    self.offset -= 1
 
     def __init__(
         self,
