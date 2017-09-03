@@ -46,6 +46,13 @@ class GuiWindow:
         self.window.addstr(self.height + 4, 5, " " + self.footer + " ")
         self.window.addstr(0, 7, " " + self.header + " ")
 
+        #Total size
+        size_sum = 0
+        for item in self.items_all:
+            if item["selected"] == True:
+                size_sum += item["size"]
+        self.window.addstr(0, 50, " Total Size: " + str(size_sum) + " ")
+
         pos = 0
         options = self.items_all[self.offset:self.offset + self.height + 1]
         for option in options:
@@ -61,6 +68,9 @@ class GuiWindow:
                 self.window.addstr(pos + 2, 8, option["name"], curses.A_STANDOUT)
             else:
                 self.window.addstr(pos + 2, 8, option["name"])
+
+            self.window.addstr(pos + 2, 60, str(option["size"]))
+
             pos += 1
 
         self.window.refresh()
@@ -70,8 +80,27 @@ class GuiWindow:
             self.render()
             #Check for input
             c = stdscr.getch()
+
             if c == ord('q') or  c == ord('Q'):
                 break
+
+            if c == ord(' '):
+                if self.items_all[self.select + self.offset]["selected"] == False:
+                    self.items_all[self.select + self.offset]["selected"] = True
+                else:
+                    self.items_all[self.select + self.offset]["selected"] = False
+
+            if c == ord('n') or c == ord('N'):
+                for item in self.items_all:
+                    item["selected"] = True
+            if c == ord('m') or c == ord('M'):
+                for item in self.items_all:
+                    item["selected"] = False
+
+            if c == curses.KEY_ENTER:
+
+                break
+
             if c == curses.KEY_UP:
                 self.select -= 1
             if c == curses.KEY_DOWN:
@@ -104,7 +133,7 @@ class GuiWindow:
             self.items_all.append({
                 "name": item,
                 "size": memory,
-                "selected": False
+                "selected": False,
             })
         self.length = len(self.items_all)
 
