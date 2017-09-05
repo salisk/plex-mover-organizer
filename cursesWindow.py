@@ -1,6 +1,15 @@
 import curses
 from curses import wrapper
 
+def size_hum(num):
+    if num < 1024:
+        return "%3.1f%s" % (num, 'K')
+    num /= 1024
+    if num < 1024:
+        return "%3.1f%s" % (num, 'M')
+    num /= 1024
+    return "%3.1f%s" % (num, "G")
+
 class GuiWindow:
     stdscr = None
     window = None
@@ -9,11 +18,21 @@ class GuiWindow:
     edges = "|**"
     footer = "Space = select, Enter = start, q = cancel"
     header = "Select files to copy"
+    quitting = False
+    cpy = True;
 
     offset = 0
     height = 15
     width = 70
     select = 0
+
+    def toSelect(self):
+        if self.quitting:
+            return False
+        return_s = filter(lambda x: x["selected"], self.items_all)
+        returner = list(map(lambda x: x["name"], return_s))
+        returner.append(self.cpy)
+        return returner
 
     def begin_window(self):
         self.stdscr = curses.initscr()
@@ -43,7 +62,7 @@ class GuiWindow:
             self.edges[2], self.edges[2]
         )
         #Footer + header draw
-        self.window.addstr(self.height + 4, 5, " " + self.footer + " ")
+        self.window.addstr(self.height + 4, 7, " " + self.footer + " ")
         self.window.addstr(0, 7, " " + self.header + " ")
 
         #Total size
@@ -51,27 +70,38 @@ class GuiWindow:
         for item in self.items_all:
             if item["selected"] == True:
                 size_sum += item["size"]
-        self.window.addstr(0, 50, " Total Size: " + str(size_sum) + " ")
+        self.window.addstr(0, 45, " Total Size: " + str(size_hum(size_sum)) + " ")
+        #Copy label (Not implemented)
+        if self.cpy == True:
+            cpy_label = "X"
+        else:
+            cpy_label = " "
+        #self.window.addstr(self.height + 4, 49, ", b = Copy [" + cpy_label + "] ")
 
         pos = 0
         options = self.items_all[self.offset:self.offset + self.height + 1]
         for option in options:
-            label = ""
             if(option["selected"] == True):
                 label = "[x] "
             else:
                 label = "[ ] "
 
-            self.window.addstr(pos + 2, 4, label)
+            self.window.addstr(pos + 2, 2, label)
 
             if pos == self.select:
-                self.window.addstr(pos + 2, 8, option["name"], curses.A_STANDOUT)
+                self.window.addstr(pos + 2, 6, option["name"], curses.A_STANDOUT)
             else:
-                self.window.addstr(pos + 2, 8, option["name"])
+                self.window.addstr(pos + 2, 6, option["name"])
 
-            self.window.addstr(pos + 2, 60, str(option["size"]))
+            self.window.addstr(pos + 2, 60, "%6s" % str(size_hum(option["size"])))
 
             pos += 1
+
+        #Hint for more items
+        if self.offset > 0:
+            self.window.addstr(1, 2, "...")
+        if self.offset + self.height <= self.length - 2:
+            self.window.addstr(self.height + 3, 2, "...")
 
         self.window.refresh()
 
@@ -82,6 +112,7 @@ class GuiWindow:
             c = stdscr.getch()
 
             if c == ord('q') or  c == ord('Q'):
+                self.quitting = True
                 break
 
             if c == ord(' '):
@@ -96,9 +127,13 @@ class GuiWindow:
             if c == ord('m') or c == ord('M'):
                 for item in self.items_all:
                     item["selected"] = False
+            if c == ord('b') or c == ord('B'):
+                if self.cpy == True:
+                    self.cpy = False
+                else:
+                    self.cpy = True
 
-            if c == curses.KEY_ENTER:
-
+            if c == 10:
                 break
 
             if c == curses.KEY_UP:
